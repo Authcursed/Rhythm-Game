@@ -1,3 +1,4 @@
+// Inside Conductor.cs
 using UnityEngine;
 
 public class Conductor : MonoBehaviour
@@ -5,13 +6,13 @@ public class Conductor : MonoBehaviour
     public static Conductor Instance { get; private set; }
 
     public AudioSource musicSource;
-    public float songBpm = 115f; // Beats per minute of the song
-    public float initialDelay = 1.1f; // Seconds before the first beat hits the judgment line (adjust based on your setup)
+    public float songBpm = 120f;
+    public float initialDelay = 1.0f;
 
-    public double songStartTimeDsp; // Precise start time from AudioSettings.dspTime
+    public double songStartTimeDsp; // Made public for NoteSpawner if needed, or use getter
     private bool isPlaying = false;
+    private bool songFinishedNotified = false; // --- ADDED: Flag to prevent multiple notifications ---
 
-    // Calculated values
     public double SecPerBeat { get; private set; }
     public double BeatsPerSec { get; private set; }
 
@@ -39,59 +40,61 @@ public class Conductor : MonoBehaviour
     public void StartSong(AudioClip clip = null)
     {
         if (clip != null) musicSource.clip = clip;
-        if (musicSource.clip == null)
+        if (musicSource.clip == null) { Debug.LogError("No AudioClip!"); return; }
+
+        SecPerBeat = 60.0 / songBpm;
+        BeatsPerSec = songBpm / 60.0;
+
+        songStartTimeDsp = AudioSettings.dspTime + initialDelay;
+        musicSource.PlayScheduled(songStartTimeDsp);
+        isPlaying = true;
+        songFinishedNotified = false; // --- ADDED: Reset flag on new song start ---
+        Debug.Log($"Song scheduled. DSP Start: {songStartTimeDsp}, Duration: {musicSource.clip.length}s");
+    }
+
+    void Update()
+    {
+        if (!isPlaying || musicSource == null || musicSource.clip == null || songFinishedNotified)
         {
-            Debug.LogError("No AudioClip assigned to Conductor!");
             return;
         }
 
-        // Record the precise time the song WILL start playing
-        // AudioSettings.dspTime provides a highly accurate clock independent of frame rate
-        songStartTimeDsp = AudioSettings.dspTime + initialDelay;
+        // Check if song has effectively ended
+        // Using GetSongPosition() which is (AudioSettings.dspTime - songStartTimeDsp)
+        double currentSongTime = GetSongPosition();
 
-        // Schedule the song to play exactly at songStartTimeDsp
-        musicSource.PlayScheduled(songStartTimeDsp);
-
-        isPlaying = true;
-        Debug.Log($"Song scheduled to start at DSP time: {songStartTimeDsp}");
+        // musicSource.isPlaying can turn false slightly before or after time matches length
+        // So we check both time and the isPlaying flag after a certain point.
+        if (currentSongTime >= musicSource.clip.length - 0.05f) // Small buffer for precision
+        {
+            // If time is past duration OR if Unity reports it's no longer playing (and it wasn't just stopped by us)
+            if (currentSongTime >= musicSource.clip.length || !musicSource.isPlaying)
+            {
+                HandleSongFinished();
+            }
+        }
     }
 
-    public double GetAudioTime()
+    private void HandleSongFinished()
     {
-        if (!isPlaying) return 0.0;
-        // Current precise audio time
-        return AudioSettings.dspTime;
+        if (songFinishedNotified) return; // Already handled
+
+        isPlaying = false; // Update internal flag
+        songFinishedNotified = true;
+        Debug.Log("Conductor: Song playback finished.");
+        GameManager.Instance?.SongFinished();
     }
 
-    public double GetSongPosition()
-    {
-        if (!isPlaying) return 0.0;
-        // Time elapsed since the song *actually* started playing according to the DSP clock
-        return AudioSettings.dspTime - songStartTimeDsp;
-    }
-
-    public double GetSongPositionInBeats()
-    {
-        if (!isPlaying) return 0.0;
-        // Correct calculation: Time since audio started / seconds per beat
-        return (AudioSettings.dspTime - songStartTimeDsp) / SecPerBeat;
-
-        // Or if you still have the GetSongPosition() helper method:
-        // return GetSongPosition() / SecPerBeat;
-    }
-    public double GetDspTimeForBeat(double targetBeat)
-    {
-        return songStartTimeDsp + initialDelay + (targetBeat * SecPerBeat);
-    }
-
-    public bool IsPlaying()
-    {
-        return isPlaying && musicSource.isPlaying;
-    }
+    public double GetAudioTime() { return AudioSettings.dspTime; }
+    public double GetSongPosition() { return isPlaying ? (AudioSettings.dspTime - songStartTimeDsp) : 0.0; }
+    public double GetSongPositionInBeats() { return GetSongPosition() / SecPerBeat; }
+    public double GetDspTimeForBeat(double beat) { return songStartTimeDsp + initialDelay + (beat * SecPerBeat); }
+    public bool IsPlaying() { return isPlaying && (musicSource != null && musicSource.isPlaying); } // More robust check
 
     public void StopSong()
     {
-        musicSource.Stop();
+        if (musicSource != null) musicSource.Stop();
         isPlaying = false;
+        // songFinishedNotified = true; // Consider if manual stop should trigger results
     }
 }

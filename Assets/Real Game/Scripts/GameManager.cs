@@ -1,8 +1,9 @@
 using UnityEngine;
-using UnityEngine.UI; // Keep if you ever use legacy UI
-using TMPro; // Use TextMeshPro for better text
-using System.Collections; // Needed for Coroutines
-using System.Collections.Generic; // Needed for Dictionary
+using UnityEngine.UI;
+using TMPro;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement; // Needed for Retrying/Changing scenes
 
 public class GameManager : MonoBehaviour
 {
@@ -13,203 +14,214 @@ public class GameManager : MonoBehaviour
 
     [Header("Scoring")]
     public int score = 0;
-    // public int combo = 0; // Changed: Renamed to currentCombo for clarity
-    private int currentCombo = 0; // Track combo internally
+    private int currentCombo = 0;
     public int maxCombo = 0;
 
-    // Score values for each accuracy - adjust as needed
+    // --- ADDED: Accuracy Counters ---
+    private int perfectCount = 0;
+    private int goodCount = 0;
+    private int okayCount = 0;
+    private int missCount = 0;
+    // --- END ADDED ---
+
     public int perfectScore = 100;
     public int goodScore = 75;
     public int okayScore = 50;
 
-    [Header("UI References (Optional)")]
+    [Header("UI References")]
     public TextMeshProUGUI scoreText;
-    public TextMeshProUGUI comboText;    // Assign in Inspector
-    public TextMeshProUGUI accuracyText; // Assign in Inspector
+    public TextMeshProUGUI comboText;
+    public TextMeshProUGUI accuracyText;
 
-    // --- ADDED: References for Canvas Groups (Recommended for fading) ---
+    // --- ADDED: Results Panel UI References ---
+    [Header("Results Panel UI")]
+    public GameObject resultsPanel; // The parent panel for results
+    public TextMeshProUGUI finalScoreText;
+    public TextMeshProUGUI finalMaxComboText;
+    public TextMeshProUGUI perfectsCountText;
+    public TextMeshProUGUI goodsCountText;
+    public TextMeshProUGUI okaysCountText;
+    public TextMeshProUGUI missesCountText;
+    public TextMeshProUGUI rankText; // For displaying S, A, B, etc.
+    // --- END ADDED ---
+
     private CanvasGroup accuracyCanvasGroup;
     private CanvasGroup comboCanvasGroup;
-    // --- END ADDED ---
 
-    // --- ADDED: Feedback Animation Parameters ---
     [Header("Feedback Animation")]
-    public float feedbackDisplayDuration = 0.6f; // Total time from pop start to fade end
-    public float feedbackFadeTime = 0.2f;      // How long the fade in/out takes
-    public Vector3 feedbackInitialScale = new Vector3(1.5f, 1.5f, 1.5f); // Pop start scale
-    public Vector3 feedbackTargetScale = Vector3.one; // Normal scale
-    // --- END ADDED ---
+    public float feedbackDisplayDuration = 0.6f;
+    public float feedbackFadeTime = 0.2f;
+    public Vector3 feedbackInitialScale = new Vector3(1.5f, 1.5f, 1.5f);
+    public Vector3 feedbackTargetScale = Vector3.one;
 
-    // --- ADDED: Track Running Coroutines ---
     private Dictionary<TextMeshProUGUI, Coroutine> runningFeedbackCoroutines = new Dictionary<TextMeshProUGUI, Coroutine>();
-    // --- END ADDED ---
 
-
-    [Header("Feedback (Optional)")]
-    public GameObject hitEffectPrefab; // Prefab to instantiate on hit
-    public Transform[] laneHitZoneTransforms; // Reference to hit zone positions for effects
+    [Header("Feedback Effects")]
+    public GameObject hitEffectPrefab;
+    public Transform[] laneHitZoneTransforms;
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        // DontDestroyOnLoad(gameObject); // Optional
 
-        // --- ADDED: Get CanvasGroup components if they exist ---
         if (accuracyText != null) accuracyCanvasGroup = accuracyText.GetComponent<CanvasGroup>();
         if (comboText != null) comboCanvasGroup = comboText.GetComponent<CanvasGroup>();
-        // --- END ADDED ---
     }
 
     void Start()
     {
-        // Initialize UI Score text
         UpdateScoreUI();
-
-        // --- CHANGED: Ensure feedback texts start inactive ---
         if (accuracyText != null) accuracyText.gameObject.SetActive(false);
         if (comboText != null) comboText.gameObject.SetActive(false);
-        // --- END CHANGED ---
-
-        // Example: Start the game immediately
+        // --- ADDED: Ensure results panel is hidden at start ---
+        if (resultsPanel != null) resultsPanel.SetActive(false);
+        // --- END ADDED ---
         StartGame();
     }
 
     public void StartGame()
     {
-        if (isGameRunning) return;
+        if (isGameRunning && Conductor.Instance.IsPlaying()) return; // Prevent restart if already running
 
         score = 0;
-        currentCombo = 0; // Use internal variable
+        currentCombo = 0;
         maxCombo = 0;
-        isGameRunning = true;
+        // --- ADDED: Reset accuracy counters ---
+        perfectCount = 0;
+        goodCount = 0;
+        okayCount = 0;
+        missCount = 0;
+        // --- END ADDED ---
 
+        isGameRunning = true;
         UpdateScoreUI();
 
-        // --- CHANGED: Ensure feedback texts are inactive on start ---
         if (accuracyText != null) accuracyText.gameObject.SetActive(false);
         if (comboText != null) comboText.gameObject.SetActive(false);
-        StopAllFeedbackCoroutines(); // Stop any leftovers if restarting
-        // --- END CHANGED ---
+        if (resultsPanel != null) resultsPanel.SetActive(false); // Hide results panel
+        StopAllFeedbackCoroutines();
 
         Conductor.Instance?.StartSong();
         Debug.Log("Game Started!");
     }
 
-    public void GameOver()
+    // Called by Conductor when song ends
+    public void SongFinished()
     {
+        if (!isGameRunning) return; // Don't show results if game wasn't running (e.g. already game over)
+
         isGameRunning = false;
-        Conductor.Instance?.StopSong();
-        StopAllFeedbackCoroutines(); // Stop animations on game over
-        Debug.Log($"Game Over! Final Score: {score}, Max Combo: {maxCombo}");
-        // Show results screen, etc.
+        Conductor.Instance?.StopSong(); // Ensure music is explicitly stopped if it wasn't already
+        StopAllFeedbackCoroutines();    // Stop any pop-up text animations
+
+        Debug.Log("Song Finished! Displaying Results.");
+        DisplayResults();
     }
 
+    void DisplayResults()
+    {
+        if (resultsPanel == null)
+        {
+            Debug.LogError("Results Panel not assigned in GameManager!");
+            return;
+        }
 
-    // Called by HitZone when a note is successfully hit
+        // Populate the text fields with ONLY the numbers
+        if (finalScoreText != null) finalScoreText.text = score.ToString();
+        if (finalMaxComboText != null) finalMaxComboText.text = maxCombo.ToString();
+        if (perfectsCountText != null) perfectsCountText.text = perfectCount.ToString();
+        if (goodsCountText != null) goodsCountText.text = goodCount.ToString();       
+        if (okaysCountText != null) okaysCountText.text = okayCount.ToString();
+        if (missesCountText != null) missesCountText.text = missCount.ToString();
+
+        string rank = CalculateRank();
+        if (rankText != null) rankText.text = rank;
+
+
+        resultsPanel.SetActive(true); // Show the panel
+    }
+
+    string CalculateRank() // Example ranking logic
+    {
+        int totalNotes = perfectCount + goodCount + okayCount + missCount;
+        if (totalNotes == 0) return "N/A"; // No notes played
+
+        double accuracyPercentage = (double)(perfectCount * 1.0 + goodCount * 0.75 + okayCount * 0.5) / totalNotes;
+
+        if (missCount == 0 && perfectCount == totalNotes) return "SS"; // Perfect Clear
+        if (accuracyPercentage >= 0.95 && missCount <= 1) return "S";
+        if (accuracyPercentage >= 0.90) return "A";
+        if (accuracyPercentage >= 0.80) return "B";
+        if (accuracyPercentage >= 0.70) return "C";
+        return "D";
+    }
+
+    public void GameOver() // If you implement a fail state (e.g. health bar)
+    {
+        if (!isGameRunning) return;
+        isGameRunning = false;
+        Conductor.Instance?.StopSong();
+        StopAllFeedbackCoroutines();
+        Debug.Log($"Game Over! Final Score: {score}, Max Combo: {maxCombo}");
+        DisplayResults(); // Show results even on game over
+    }
+
     public void NoteHit(NoteController note, TimingAccuracy accuracy, double timeDifference)
     {
         if (!isGameRunning) return;
 
         int scoreToAdd = 0;
+        // --- ADDED: Increment accuracy counters ---
         switch (accuracy)
         {
-            case TimingAccuracy.Perfect: scoreToAdd = perfectScore; break;
-            case TimingAccuracy.Good: scoreToAdd = goodScore; break;
-            case TimingAccuracy.Okay: scoreToAdd = okayScore; break;
+            case TimingAccuracy.Perfect: scoreToAdd = perfectScore; perfectCount++; break;
+            case TimingAccuracy.Good:    scoreToAdd = goodScore;    goodCount++; break;
+            case TimingAccuracy.Okay:    scoreToAdd = okayScore;    okayCount++; break;
         }
+        // --- END ADDED ---
 
-        score += scoreToAdd * (1 + currentCombo / 10); // Apply combo bonus example
-        currentCombo++; // Use internal variable
+        score += scoreToAdd * (1 + currentCombo / 10);
+        currentCombo++;
         if (currentCombo > maxCombo) maxCombo = currentCombo;
 
-        UpdateScoreUI(); // Update score display
+        UpdateScoreUI();
 
-        // --- CHANGED: Trigger animated feedback instead of direct UI updates ---
         string accuracyString = accuracy.ToString() + "!";
         string comboString = "Combo " + currentCombo;
-
-        // Determine color based on accuracy
         Color feedbackColor = Color.white;
-        switch (accuracy)
-        {
+        switch (accuracy) {
             case TimingAccuracy.Perfect: feedbackColor = Color.cyan; break;
-            case TimingAccuracy.Good: feedbackColor = Color.green; break;
-            case TimingAccuracy.Okay: feedbackColor = Color.yellow; break;
+            case TimingAccuracy.Good:    feedbackColor = Color.green; break;
+            case TimingAccuracy.Okay:    feedbackColor = Color.yellow; break;
         }
-
-        // Show accuracy feedback with animation
         ShowFeedback(accuracyText, accuracyString, feedbackColor);
+        if (currentCombo > 1) ShowFeedback(comboText, comboString, Color.white);
+        else if (comboText != null) { StopFeedbackCoroutine(comboText); comboText.gameObject.SetActive(false); }
 
-        // Show combo feedback with animation (only if combo > 1)
-        if (currentCombo > 1)
-        {
-            ShowFeedback(comboText, comboString, Color.white);
-        }
-        else if (comboText != null)
-        {
-            // Hide combo text immediately if combo is 1 or less
-            StopFeedbackCoroutine(comboText); // Stop any previous fadeout
-            comboText.gameObject.SetActive(false);
-        }
-        // --- END CHANGED ---
-
-        PlayHitEffect(note.LaneIndex); // Play particle effect
-
-        //Debug.Log($"Hit: {accuracy} (+{scoreToAdd}), Combo: {currentCombo}, Score: {score}");
+        PlayHitEffect(note.LaneIndex);
     }
 
-    // Called by NoteController or HitZone when a note is missed
     public void NoteMissed(NoteController note)
     {
         if (!isGameRunning) return;
 
-        if (currentCombo > 0) // Only process miss feedback if combo was active
-        {
-            Debug.Log($"Missed Note Lane {note.LaneIndex}! Combo Reset.");
-            currentCombo = 0; // Reset combo on miss
+        // --- ADDED: Increment miss counter ---
+        missCount++;
+        // --- END ADDED ---
 
-            // --- CHANGED: Trigger animated feedback for "MISS" ---
+        if (currentCombo > 0)
+        {
+            Debug.Log($"Missed Note! Combo Reset."); // Removed laneIndex as note can be null
             ShowFeedback(accuracyText, "MISS", Color.red);
-            // --- END CHANGED ---
-
-            // --- CHANGED: Stop combo animation & hide combo text immediately ---
-            if (comboText != null)
-            {
-                StopFeedbackCoroutine(comboText);
-                comboText.gameObject.SetActive(false);
-            }
-            // --- END CHANGED ---
-
+        } else {
+             Debug.Log($"Missed Note (Combo already 0).");
         }
-        else
-        {
-            Debug.Log($"Missed Note Lane {note.LaneIndex} (Combo already 0).");
-            // Optionally show "MISS" feedback even if combo was 0
-            // ShowFeedback(accuracyText, "MISS", Color.red);
-        }
-        currentCombo = 0; // Ensure combo is 0
-
-        // Optionally play a miss sound/effect
+        currentCombo = 0;
+        if (comboText != null) { StopFeedbackCoroutine(comboText); comboText.gameObject.SetActive(false); }
     }
 
-    void UpdateScoreUI()
-    {
-        if (scoreText != null)
-        {
-            scoreText.text = $"{score}"; // Use the score variable
-        }
-    }
-
-    // --- REMOVED UpdateComboUI ---
-    // --- REMOVED ShowAccuracy ---
-    // --- REMOVED ClearAccuracyUI ---
-    // --- REMOVED commented out FadeOutAccuracyText ---
-
+    void UpdateScoreUI() { if (scoreText != null) scoreText.text = $"{score}"; }
     void PlayHitEffect(int laneIndex)
     {
         if (hitEffectPrefab != null && laneHitZoneTransforms != null && laneIndex >= 0 && laneIndex < laneHitZoneTransforms.Length)
@@ -225,9 +237,6 @@ public class GameManager : MonoBehaviour
 
         }
     }
-
-    // --- ADDED: Feedback Animation Control Methods ---
-
     private void ShowFeedback(TextMeshProUGUI textElement, string message, Color color)
     {
         if (textElement == null) return; // Don't try to show feedback if UI element isn't assigned
@@ -240,7 +249,6 @@ public class GameManager : MonoBehaviour
         Coroutine newCoroutine = StartCoroutine(AnimateFeedbackCoroutine(textElement));
         runningFeedbackCoroutines[textElement] = newCoroutine;
     }
-
     private void StopFeedbackCoroutine(TextMeshProUGUI textElement)
     {
         if (textElement != null && runningFeedbackCoroutines.ContainsKey(textElement) && runningFeedbackCoroutines[textElement] != null)
@@ -249,7 +257,6 @@ public class GameManager : MonoBehaviour
             runningFeedbackCoroutines[textElement] = null;
         }
     }
-
     private void StopAllFeedbackCoroutines()
     {
         // Stop all known running feedback coroutines
@@ -267,8 +274,6 @@ public class GameManager : MonoBehaviour
         }
         runningFeedbackCoroutines.Clear(); // Clear the tracking dictionary
     }
-
-
     private IEnumerator AnimateFeedbackCoroutine(TextMeshProUGUI textElement)
     {
         RectTransform rectTransform = textElement.rectTransform;
@@ -331,10 +336,25 @@ public class GameManager : MonoBehaviour
             runningFeedbackCoroutines[textElement] = null;
         }
     }
+
+    // --- ADDED: UI Button Handlers for Results Panel ---
+    public void OnRetryButtonPressed()
+    {
+        Debug.Log("Retry Button Pressed!");
+        if (resultsPanel != null) resultsPanel.SetActive(false);
+        // Option 1: Reload the current scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        // Option 2: Just call StartGame (ensure everything is reset properly)
+        // StartGame();
+    }
+
+    public void OnMainMenuButtonPressed()
+    {
+        Debug.Log("Main Menu Button Pressed!");
+        if (resultsPanel != null) resultsPanel.SetActive(false);
+        // Replace "MainMenuScene" with the actual name of your main menu scene
+        // SceneManager.LoadScene("MainMenuScene");
+        Debug.LogWarning("Load Main Menu Scene - Not Implemented Yet");
+    }
     // --- END ADDED ---
-
-} // End of GameManager class
-
-// Make sure TimingAccuracy enum is accessible
-// If it's not in its own file, you might need:
-// public enum TimingAccuracy { Perfect, Good, Okay, Miss }
+}
