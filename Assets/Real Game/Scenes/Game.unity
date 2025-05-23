@@ -1399,7 +1399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1332903690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2262,23 +2262,23 @@ MonoBehaviour:
   - targetBeat: 117
     laneIndex: 0
   - targetBeat: 121
-    laneIndex: 0
+    laneIndex: 3
   - targetBeat: 123
-    laneIndex: 0
+    laneIndex: 2
   - targetBeat: 125
     laneIndex: 0
   - targetBeat: 126
-    laneIndex: 0
+    laneIndex: 2
   - targetBeat: 127
-    laneIndex: 0
+    laneIndex: 1
   - targetBeat: 129
     laneIndex: 0
   - targetBeat: 131
-    laneIndex: 0
+    laneIndex: 2
   - targetBeat: 133
-    laneIndex: 0
+    laneIndex: 1
   - targetBeat: 134
-    laneIndex: 0
+    laneIndex: 3
   - targetBeat: 135
     laneIndex: 0
   - targetBeat: 111
