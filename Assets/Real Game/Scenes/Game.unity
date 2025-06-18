@@ -1399,7 +1399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1332903690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2076,6 +2076,11 @@ MonoBehaviour:
   - {fileID: 1514396592543915641, guid: 3611b3b5f105400429f7918f1f317b6d, type: 3}
   - {fileID: 8240582684301137525, guid: 7a5747059d400674d8a622fd88266cc2, type: 3}
   - {fileID: 8753610416066072527, guid: 57e410a1ccf13c7458a59311019ec1d2, type: 3}
+  forbiddenNotePrefabsPerLane:
+  - {fileID: 1514396592543915641, guid: 6938fce5a7deb6b47b6c28c62d88f46e, type: 3}
+  - {fileID: 1514396592543915641, guid: bc61bdb688cb90344b55255f408648d2, type: 3}
+  - {fileID: 1514396592543915641, guid: a4f1ca9e032d96e48b797dd3949b543a, type: 3}
+  - {fileID: 1514396592543915641, guid: 9418a704e7916a24ca16499964d1b89f, type: 3}
   laneSpawnPoints:
   - {fileID: 1560582047}
   - {fileID: 43258634}
@@ -2089,200 +2094,298 @@ MonoBehaviour:
   notesToSpawn:
   - targetBeat: 1
     laneIndex: 2
+    isForbidden: 1
   - targetBeat: 3
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 5
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 6
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 7
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 9
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 11
     laneIndex: 3
+    isForbidden: 1
   - targetBeat: 13
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 14
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 15
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 16
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 17
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 19
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 21
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 22
     laneIndex: 0
+    isForbidden: 1
   - targetBeat: 23
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 24
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 25
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 26
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 27
     laneIndex: 3
+    isForbidden: 1
   - targetBeat: 28
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 30
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 31
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 32
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 33
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 34
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 35
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 36
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 37
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 38
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 39
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 41
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 42
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 43
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 44
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 45
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 49
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 51
     laneIndex: 2
+    isForbidden: 1
   - targetBeat: 53
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 54
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 55
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 57
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 59
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 61
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 62
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 63
     laneIndex: 3
+    isForbidden: 1
   - targetBeat: 65
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 67
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 69
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 70
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 71
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 72
     laneIndex: 3
+    isForbidden: 1
   - targetBeat: 73
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 74
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 75
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 76
     laneIndex: 2
+    isForbidden: 1
   - targetBeat: 77
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 81
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 82
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 83
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 84
     laneIndex: 2
+    isForbidden: 1
   - targetBeat: 85
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 86
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 87
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 89
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 90
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 91
     laneIndex: 2
+    isForbidden: 1
   - targetBeat: 92
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 93
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 97
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 98
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 99
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 100
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 101
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 102
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 103
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 105
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 106
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 107
     laneIndex: 3
+    isForbidden: 1
   - targetBeat: 108
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 109
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 110
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 113
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 114
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 115
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 116
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 117
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 121
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 123
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 125
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 126
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 127
     laneIndex: 1
+    isForbidden: 1
   - targetBeat: 129
     laneIndex: 0
+    isForbidden: 0
   - targetBeat: 131
     laneIndex: 2
+    isForbidden: 0
   - targetBeat: 133
     laneIndex: 1
+    isForbidden: 0
   - targetBeat: 134
     laneIndex: 3
+    isForbidden: 0
   - targetBeat: 135
     laneIndex: 0
+    isForbidden: 1
   - targetBeat: 111
     laneIndex: 2
+    isForbidden: 0
   noteTravelTime: 2
 --- !u!4 &1654110995
 Transform:

@@ -3,29 +3,31 @@ using UnityEngine;
 public class NoteController : MonoBehaviour
 {
     public int LaneIndex { get; private set; }
-    public double TargetHitTime { get; private set; } // Precise time the note should be hit (using AudioSettings.dspTime)
-    public double SpawnTime { get; private set; } // When the note was actually spawned
-    public float TravelTime { get; private set; } // Time it takes to travel from spawn to hit zone
+    public double TargetHitTime { get; private set; }
+    public double SpawnTime { get; private set; }
+    public float TravelTime { get; private set; }
+    public bool IsForbidden { get; private set; } // Property to know its type
 
     private Vector3 startPosition;
     private Vector3 endPosition;
     private bool isInitialized = false;
 
-    public void Initialize(int laneIndex, double targetHitTime, double spawnTime, float travelTime, Vector3 startPos, Vector3 endPos)
+    // The initialize method must accept the 'isForbidden' flag from the NoteSpawner
+    public void Initialize(int laneIndex, double targetHitTime, double spawnTime, float travelTime, Vector3 startPos, Vector3 endPos, bool isForbidden)
     {
-        LaneIndex = laneIndex;
-        TargetHitTime = targetHitTime;
-        SpawnTime = spawnTime;
-        TravelTime = travelTime; // Usually constant, determines note speed visual
-        startPosition = startPos;
-        endPosition = endPos;
+        this.LaneIndex = laneIndex;
+        this.TargetHitTime = targetHitTime;
+        this.SpawnTime = spawnTime;
+        this.TravelTime = travelTime;
+        this.IsForbidden = isForbidden; // Set the flag here
 
-        transform.position = startPosition; // Set initial position
-        isInitialized = true;
+        this.startPosition = startPos;
+        this.endPosition = endPos;
+        transform.position = startPosition;
+        this.isInitialized = true;
 
-        // Optional: Calculate initial position based on how much time has already passed since spawn
-        // if you spawn slightly late relative to the ideal pre-calculation
-        double timeSinceSpawn = Conductor.Instance.GetAudioTime() - spawnTime;
+        // Optional: Pre-position note if spawned slightly late
+        double timeSinceSpawn = Conductor.Instance.GetAudioTime() - SpawnTime;
         if (timeSinceSpawn > 0 && TravelTime > 0)
         {
             float progress = (float)(timeSinceSpawn / TravelTime);
@@ -37,19 +39,31 @@ public class NoteController : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        // Calculate the note's current position based on audio time
-        double currentTime = Conductor.Instance.GetAudioTime(); // Get precise audio time
+        // Standard movement logic
+        double currentTime = Conductor.Instance.GetAudioTime();
         double timeElapsed = currentTime - SpawnTime;
-        float progress = (TravelTime > 0) ? (float)(timeElapsed / TravelTime) : 1.0f; // Avoid division by zero
-
-        // Lerp (Linear Interpolation) moves the note smoothly
+        float progress = (TravelTime > 0) ? (float)(timeElapsed / TravelTime) : 1.0f;
         transform.position = Vector3.LerpUnclamped(startPosition, endPosition, progress);
 
-        // Optional: Destroy note if it goes too far past the hit zone (missed)
-        if (progress > 1.1f) // Adjust margin as needed
+        // --- THIS IS THE CORRECTED MISS LOGIC ---
+        // Check if note went past the hit zone plus a small time buffer
+        if (currentTime > TargetHitTime + 0.2) // Using 0.2 seconds as a buffer past the hit time
         {
-            // Notify GameManager/ScoreManager about the miss BEFORE destroying
-            GameManager.Instance?.NoteMissed(this);
+            // Check if this note is forbidden BEFORE declaring a miss
+            if (!this.IsForbidden)
+            {
+                // It's a regular note, so this is a genuine miss.
+                Debug.Log($"Regular Note missed (went too far). Notifying GameManager.");
+                GameManager.Instance?.NoteMissed(this);
+            }
+            else
+            {
+                // It's a forbidden note that the player correctly avoided.
+                // This is a success, so we do NOTHING here except let it get destroyed.
+                Debug.Log("Forbidden note successfully avoided (went too far).");
+            }
+
+            // Destroy the note in either case once it's far enough away.
             Destroy(gameObject);
         }
     }

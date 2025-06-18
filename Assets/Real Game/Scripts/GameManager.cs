@@ -167,6 +167,34 @@ public class GameManager : MonoBehaviour
         DisplayResults(); // Show results even on game over
     }
 
+    // --- ADD THIS NEW METHOD FOR THE PENALTY ---
+    public void ForbiddenNoteHit()
+    {
+        if (!isGameRunning) return;
+
+        // Apply score penalty
+        score -= 300;
+        if (score < 0) score = 0; // Prevent score from going negative
+
+        // Reset the combo
+        currentCombo = 0;
+
+        // Update the main score UI
+        UpdateScoreUI();
+
+        // --- Feedback ---
+        // Show penalty feedback text
+        ShowFeedback(accuracyText, "PENALTY!", Color.magenta);
+
+        // Stop and hide the combo text immediately
+        if (comboText != null)
+        {
+            StopFeedbackCoroutine(comboText);
+            comboText.gameObject.SetActive(false);
+        }
+
+        // Optionally play a unique penalty sound effect here
+    }
     public void NoteHit(NoteController note, TimingAccuracy accuracy, double timeDifference)
     {
         if (!isGameRunning) return;

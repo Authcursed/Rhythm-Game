@@ -119,38 +119,40 @@ public class HitZone : MonoBehaviour
     // This method now ONLY handles checking for note hits when called.
     private void CheckNoteHitAttempt()
     {
-        // Debug.Log($"HitZone {this.laneIndex}: CheckNoteHitAttempt RUNNING.");
         if (notesInZone.Count > 0)
         {
             NoteController noteToHit = FindBestNoteToHit();
-
-            // Debug.Log($"HitZone {this.laneIndex}: FindBestNoteToHit returned '{(noteToHit == null ? "NULL" : noteToHit.gameObject.name)}'.");
-
             if (noteToHit != null)
             {
-                double hitTime = Conductor.Instance.GetAudioTime(); // Use Conductor for precise time
-                double timeDifference = hitTime - noteToHit.TargetHitTime;
-                TimingAccuracy accuracy = JudgeTiming(timeDifference);
-
-                Debug.Log($"HitZone {this.laneIndex}: Judged as '{accuracy}'. Time Diff: {timeDifference * 1000:F1}ms");
-
-                if (accuracy != TimingAccuracy.Miss)
+                // --- ADD THIS FORBIDDEN NOTE CHECK ---
+                if (noteToHit.IsForbidden)
                 {
-                    // Debug.Log($"HitZone {this.laneIndex}: HIT SUCCESSFUL! Notifying GameManager.");
-                    GameManager.Instance?.NoteHit(noteToHit, accuracy, timeDifference); // Notify GameManager
-                    notesInZone.Remove(noteToHit); // Remove note from list *after* processing
-                    Destroy(noteToHit.gameObject); // Destroy the note GameObject
+                    // Player hit a forbidden note! This is bad.
+                    Debug.Log("PENALTY! Forbidden Note Hit!");
+                    GameManager.Instance?.ForbiddenNoteHit(); // Call a new penalty method in GameManager
+
+                    // Remove and destroy the note
+                    notesInZone.Remove(noteToHit);
+                    Destroy(noteToHit.gameObject);
                 }
+                // --- IF NOT FORBIDDEN, PROCEED WITH NORMAL LOGIC ---
                 else
                 {
-                    // Optional: Add feedback for pressing the key but missing the timing window?
-                     Debug.Log($"HitZone {this.laneIndex}: Hit attempt failed - timing judged as Miss.");
+                    // This is the existing logic for hitting a regular note
+                    double hitTime = Conductor.Instance.GetAudioTime();
+                    double timeDifference = hitTime - noteToHit.TargetHitTime;
+                    TimingAccuracy accuracy = JudgeTiming(timeDifference);
+
+                    if (accuracy != TimingAccuracy.Miss)
+                    {
+                        GameManager.Instance?.NoteHit(noteToHit, accuracy, timeDifference);
+                        notesInZone.Remove(noteToHit);
+                        Destroy(noteToHit.gameObject);
+                    }
+                    // (Else: player pressed key on a regular note but missed the timing, do nothing)
                 }
             }
-            // else: FindBestNoteToHit returned null - means no note was deemed hittable right now.
         }
-        // else: No notes were in the zone when the key was pressed.
-        // Debug.Log($"HitZone {this.laneIndex}: CheckNoteHitAttempt - No notes in zone.");
     }
 
 

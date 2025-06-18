@@ -7,6 +7,7 @@ public class NoteData
 {
     public double targetBeat; // When the note should be hit (in beats)
     public int laneIndex; // Which lane (0-based)
+    public bool isForbidden; // add forbidden lane
     // Add other properties if needed (e.g., note type for holds)
 }
 
@@ -14,6 +15,7 @@ public class NoteSpawner : MonoBehaviour
 {
     [Header("References")]
     public GameObject[] notePrefabsPerLane; // Assign your Note Prefab here
+    public GameObject[] forbiddenNotePrefabsPerLane;
     public Transform[] laneSpawnPoints; // Assign the SpawnPoint GameObjects for each lane
     public Transform[] laneHitZones;   // Assign the HitZone GameObjects for each lane
 
@@ -62,6 +64,9 @@ public class NoteSpawner : MonoBehaviour
 
     void SpawnNote(NoteData noteData)
     {
+
+        Debug.Log($"Spawning Note -- Beat: {noteData.targetBeat}, Lane: {noteData.laneIndex}, Is Forbidden: {noteData.isForbidden}");
+
         if (notePrefabsPerLane == null || notePrefabsPerLane.Length <= noteData.laneIndex || notePrefabsPerLane[noteData.laneIndex] == null)
         {
             Debug.LogError($"Note Prefab Per Lane not assigned or invalid for index {noteData.laneIndex}"); return;
@@ -72,6 +77,30 @@ public class NoteSpawner : MonoBehaviour
             return;
         }
 
+        GameObject prefabToSpawn;
+        if (noteData.isForbidden)
+        {
+            // --- MODIFIED LOGIC for forbidden notes array ---
+            // Validate the forbidden notes array
+            if (forbiddenNotePrefabsPerLane == null || forbiddenNotePrefabsPerLane.Length <= noteData.laneIndex || forbiddenNotePrefabsPerLane[noteData.laneIndex] == null)
+            {
+                Debug.LogError($"Forbidden note prefab for lane {noteData.laneIndex} is not assigned in the NoteSpawner!");
+                return; // Stop if the required prefab is missing
+            }
+            // Select the correct forbidden note based on lane index
+            prefabToSpawn = forbiddenNotePrefabsPerLane[noteData.laneIndex];
+        }
+        else
+        {
+            // This is the existing logic for regular notes, it remains the same
+            if (notePrefabsPerLane == null || notePrefabsPerLane.Length <= noteData.laneIndex || notePrefabsPerLane[noteData.laneIndex] == null)
+            {
+                Debug.LogError($"Regular note prefab for lane {noteData.laneIndex} is not assigned in the NoteSpawner!");
+                return;
+            }
+            prefabToSpawn = notePrefabsPerLane[noteData.laneIndex];
+        }
+        // --- END OF MODIFIED LOGIC ---
 
         // Calculate the precise time this note should be hit using the Conductor's start time and beat info
         double targetHitDspTime = Conductor.Instance.GetDspTimeForBeat(noteData.targetBeat);
@@ -80,19 +109,20 @@ public class NoteSpawner : MonoBehaviour
 
 
         // Instantiate the note prefab
-        GameObject noteObject = Instantiate(notePrefabsPerLane[noteData.laneIndex], laneSpawnPoints[noteData.laneIndex].position, Quaternion.identity);
+        GameObject noteObject = Instantiate(prefabToSpawn, laneSpawnPoints[noteData.laneIndex].position, Quaternion.identity);
         NoteController noteController = noteObject.GetComponent<NoteController>();
 
         if (noteController != null)
         {
-            // Initialize the note with all necessary timing and position info
+            // --- UPDATE THE INITIALIZE CALL ---
             noteController.Initialize(
                 noteData.laneIndex,
                 targetHitDspTime,
-                spawnDspTime, // Pass the calculated ideal spawn time
+                spawnDspTime,
                 noteTravelTime,
                 laneSpawnPoints[noteData.laneIndex].position,
-                laneHitZones[noteData.laneIndex].position
+                laneHitZones[noteData.laneIndex].position,
+                noteData.isForbidden // --- PASS THE NEW FLAG ---
             );
         }
         else
